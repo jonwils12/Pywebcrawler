@@ -1,0 +1,32 @@
+import scrapy
+
+class WikipediaSpider(scrapy.Spider):
+    name = 'wikipedia_spider'
+    start_urls = ['https://en.wikipedia.org/wiki/Main_Page']
+
+    def parse(self, response):
+        # Extract article titles
+        titles = response.css('h1.firstHeading::text').getall()
+        for title in titles:
+            print('Article Title:', title)
+
+        # Extract links and follow internal Wikipedia links
+        links = response.css('a::attr(href)').getall()
+        for link in links:
+            if self.is_internal_link(link):
+                yield response.follow(link, callback=self.parse)
+
+    def is_internal_link(self, link):
+        # Check if the link is an internal Wikipedia link
+        return link.startswith('/wiki/') and ':' not in link
+
+# Run the spider
+if __name__ == '__main__':
+    from scrapy.crawler import CrawlerProcess
+
+    process = CrawlerProcess(settings={
+        'USER_AGENT': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/94.0.4606.81 Safari/537.36',
+    })
+
+    process.crawl(WikipediaSpider)
+    process.start()
